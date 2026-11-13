@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   ArrowLeft,
+  ArrowUp,
   BookOpen,
   Code2,
   HelpCircle,
@@ -20,18 +21,25 @@ import {
   Workflow,
   Menu,
   X,
+  Tag,
+  AlertTriangle,
+  PlayCircle,
+  ListOrdered,
+  Info,
 } from "lucide-react";
 
 const BASE_API_URL = "https://kaleshreyas45.github.io/java-full-stack-learning";
 
 export default function TopicLearningPage() {
-    
   const { trackId, topicId } = useParams();
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Refs for guaranteed scroll-to-top
+  const mainContentRef = useRef(null);
+  const questionTopRef = useRef(null);
 
   // Mobile / Tablet Drawer state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -48,6 +56,61 @@ export default function TopicLearningPage() {
   const [selectedQuestionIndex, setSelectedQuestionIndex] = useState(0);
   const [copiedKey, setCopiedKey] = useState(null);
 
+  // Floating Back to Top Button state
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  // Scroll detection for Back to Top Button
+  useEffect(() => {
+    const checkScroll = () => {
+      const mainScroll = mainContentRef.current
+        ? mainContentRef.current.scrollTop
+        : 0;
+      const windowScroll =
+        window.scrollY || document.documentElement.scrollTop;
+      if (mainScroll > 300 || windowScroll > 300) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+
+    const mainEl = mainContentRef.current;
+    if (mainEl) {
+      mainEl.addEventListener("scroll", checkScroll, { passive: true });
+    }
+    window.addEventListener("scroll", checkScroll, { passive: true });
+
+    return () => {
+      if (mainEl) mainEl.removeEventListener("scroll", checkScroll);
+      window.removeEventListener("scroll", checkScroll);
+    };
+  }, []);
+
+  const scrollToTop = () => {
+    if (mainContentRef.current) {
+      mainContentRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Guaranteed Scroll to Question Top when changing questions
+  const handleQuestionChange = (newIndex) => {
+    setSelectedQuestionIndex(newIndex);
+    setSubTab("theory");
+
+    setTimeout(() => {
+      if (questionTopRef.current) {
+        questionTopRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+      if (mainContentRef.current) {
+        mainContentRef.current.scrollTo({ top: 0, behavior: "smooth" });
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 10);
+  };
 
   // Lock body scroll when mobile drawer is open
   useEffect(() => {
@@ -106,6 +169,9 @@ export default function TopicLearningPage() {
       "void",
       "class",
       "interface",
+      "record",
+      "super",
+      "this",
     ];
     const regex = new RegExp(`\\b(${keywords.join("|")})\\b`, "g");
     const parts = text.split(regex);
@@ -121,6 +187,134 @@ export default function TopicLearningPage() {
       ) : (
         part
       )
+    );
+  };
+
+  // Render Walkthrough Sub-Component
+  const renderWalkthroughSection = (walkthrough) => {
+    if (!walkthrough) return null;
+
+    return (
+      <div className="p-4 sm:p-6 rounded-2xl bg-[#0d1227] border border-blue-500/20 shadow-xl space-y-5">
+        <div className="flex items-center justify-between border-b border-white/5 pb-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-blue-500/10 text-cyan-400">
+              <Terminal size={16} />
+            </div>
+            <div>
+              <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider font-mono text-cyan-300">
+                Architectural Walkthrough &amp; Execution
+              </h3>
+              <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">
+                Deconstructed steps, runtime flow, and compiler semantics.
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] sm:text-[11px] font-mono px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-300 border border-blue-500/20 shrink-0">
+            {walkthrough.steps?.length || 0} Steps
+          </span>
+        </div>
+
+        {/* 1. High-Level Approach */}
+        {walkthrough.approach && (
+          <div className="p-3.5 sm:p-4 rounded-xl bg-blue-950/30 border border-blue-500/30 flex items-start gap-2.5">
+            <Sparkles size={16} className="text-cyan-400 shrink-0 mt-0.5" />
+            <div>
+              <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-cyan-300 block mb-0.5">
+                Core Approach
+              </span>
+              <p className="text-xs sm:text-sm text-cyan-100 leading-relaxed">
+                {walkthrough.approach}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* 2. Step-by-Step Breakdown */}
+        {walkthrough.steps && walkthrough.steps.length > 0 && (
+          <div className="space-y-3 pt-1">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <ListOrdered size={14} className="text-cyan-400" /> Execution Steps
+            </span>
+            <div className="grid grid-cols-1 gap-2.5">
+              {walkthrough.steps.map((step, sIdx) => (
+                <div
+                  key={sIdx}
+                  className="p-3.5 sm:p-4 rounded-xl bg-[#151a30]/80 border border-white/5 hover:border-cyan-500/30 transition-all space-y-1.5"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-blue-600/30 text-cyan-300 border border-blue-400/40 text-[10px] font-mono font-bold flex items-center justify-center shrink-0">
+                      {sIdx + 1}
+                    </span>
+                    <h4 className="text-xs sm:text-[13px] font-bold text-white tracking-tight">
+                      {step.title}
+                    </h4>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed pl-7">
+                    {step.detail}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 3. Runtime Flow */}
+        {walkthrough.flow && (
+          <div className="p-3.5 sm:p-4 rounded-xl bg-[#151a30]/60 border border-white/10 space-y-1">
+            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+              <PlayCircle size={14} /> Runtime Lifecycle Flow
+            </span>
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              {walkthrough.flow}
+            </p>
+          </div>
+        )}
+
+        {/* 4. Common Pitfalls / Anti-patterns */}
+        {walkthrough.pitfalls && walkthrough.pitfalls.length > 0 && (
+          <div className="p-3.5 sm:p-4 rounded-xl bg-amber-950/30 border border-amber-500/30 space-y-2">
+            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+              <AlertTriangle size={14} /> Pitfalls &amp; Traps to Avoid
+            </span>
+            <ul className="space-y-1.5">
+              {walkthrough.pitfalls.map((pitfall, pIdx) => (
+                <li
+                  key={pIdx}
+                  className="flex items-start gap-2 text-xs text-slate-200"
+                >
+                  <span className="text-amber-400 shrink-0 mt-0.5">⚠️</span>
+                  <span>{pitfall}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* 5. Key Line Directives */}
+        {walkthrough.keyLines && walkthrough.keyLines.length > 0 && (
+          <div className="space-y-2 pt-1">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-300 block">
+              Key Line Takeaways
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {walkthrough.keyLines.map((kl, klIdx) => (
+                <div
+                  key={klIdx}
+                  className="p-3 rounded-lg bg-[#080d22] border border-white/5 flex items-start gap-2"
+                >
+                  <span className="px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800/40 font-mono text-[10px] shrink-0 font-bold">
+                    Line {kl.line}
+                  </span>
+                  <p className="text-xs text-slate-300 leading-snug">
+                    {kl.note}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -159,7 +353,6 @@ export default function TopicLearningPage() {
     );
   }
 
-  // Safe data extraction
   const concepts = data.concepts || [];
   const interviewQuestionsData = data.interviewQuestions || {};
 
@@ -181,7 +374,6 @@ export default function TopicLearningPage() {
   const activeQuestion =
     currentQuestionsList[selectedQuestionIndex] || currentQuestionsList[0];
 
-  // Resolve code snippet & output for active concept
   const conceptCode =
     activeConcept.basicExample?.code ||
     activeConcept.codeExample?.code ||
@@ -194,8 +386,10 @@ export default function TopicLearningPage() {
     activeConcept.output ||
     "";
 
-  // Robustly extract code explanation list from all schema variations
-  const conceptExplanations =
+  const conceptWalkthrough =
+    activeConcept.basicExample?.walkthrough || activeConcept.walkthrough;
+
+  const legacyConceptExplanations =
     activeConcept.codeExplanation ||
     activeConcept.basicExample?.codeExplanation ||
     activeConcept.basicExample?.detailedExplanation?.lineByLine ||
@@ -205,11 +399,10 @@ export default function TopicLearningPage() {
       : []);
 
   return (
-    <div className="min-h-screen bg-[#080d22] text-slate-200 flex flex-col font-sans overflow-x-hidden">
+    <div className="min-h-screen bg-[#080d22] text-slate-200 flex flex-col font-sans overflow-x-hidden relative">
       {/* Top Header */}
-      <header className="h-16 border-b border-white/10 bg-[#0d1227] px-3 sm:px-6 flex items-center justify-between sticky fixed top-0 z-40">
+      <header className="h-16 border-b border-white/10 bg-[#0d1227] px-3 sm:px-6 flex items-center justify-between sticky top-0 z-40">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          {/* Hamburger Icon for Mobile & Tablet (visible below lg) */}
           <button
             onClick={() => setIsSidebarOpen(true)}
             className="lg:hidden p-2 rounded-lg bg-[#151a30] text-slate-300 hover:text-white border border-white/10 transition shrink-0"
@@ -279,7 +472,7 @@ export default function TopicLearningPage() {
           />
         )}
 
-        {/* Left Sidebar (Desktop Static + Mobile/Tablet Off-canvas Slide Drawer) */}
+        {/* Left Sidebar */}
         <aside
           className={`
             fixed top-0 bottom-0 left-0 w-80 max-w-[85vw] bg-[#0d1227] border-r border-white/10 z-50 flex flex-col overflow-y-auto transition-transform duration-300 ease-in-out
@@ -287,7 +480,7 @@ export default function TopicLearningPage() {
             ${isSidebarOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"}
           `}
         >
-          {/* Mobile Drawer Header with Close Button */}
+          {/* Mobile Drawer Header */}
           <div className="lg:hidden p-4 border-b border-white/10 flex items-center justify-between bg-[#151a30]">
             <span className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-400">
               Curriculum Navigation
@@ -319,7 +512,7 @@ export default function TopicLearningPage() {
                     setActiveTab("concepts");
                     setSelectedConceptIndex(idx);
                     setSubTab("theory");
-                    setIsSidebarOpen(false); // Auto close drawer on mobile/tab
+                    setIsSidebarOpen(false);
                   }}
                   className={`w-full text-left px-3 py-2.5 rounded-lg transition flex items-center justify-between text-xs ${
                     activeTab === "concepts" && selectedConceptIndex === idx
@@ -328,8 +521,8 @@ export default function TopicLearningPage() {
                   }`}
                 >
                   <span className="truncate pr-2">
-                    {String(idx + 1).padStart(2, "0")}.{" "}
-                    {concept.title || concept.name}
+                    {String(concept.learningOrder || idx + 1).padStart(2, "0")}
+                    . {concept.name || concept.title}
                   </span>
                   <ChevronRight size={13} className="shrink-0 opacity-60" />
                 </button>
@@ -439,22 +632,42 @@ export default function TopicLearningPage() {
         </aside>
 
         {/* Right Main Content Area */}
-        <main className="flex-1 flex flex-col justify-between overflow-y-auto w-full min-w-0">
+        <main
+          ref={mainContentRef}
+          className="flex-1 flex flex-col justify-between overflow-y-auto w-full min-w-0"
+        >
           <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full space-y-6">
 
             {/* ======================================================== */}
-            {/* VIEW 1: CURRICULUM CONCEPTS (CLASS, OBJECT, ETC.)       */}
+            {/* VIEW 1: CONCEPTS                                         */}
             {/* ======================================================== */}
             {activeTab === "concepts" && activeConcept && (
               <div className="space-y-6">
-                {/* Header */}
                 <div>
                   <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-blue-500/10 text-cyan-300 border border-blue-500/20">
-                    Concept Module 0{selectedConceptIndex + 1}
+                    Concept Module 0
+                    {activeConcept.learningOrder || selectedConceptIndex + 1}
                   </span>
                   <h1 className="text-2xl sm:text-3xl font-extrabold text-white mt-2 tracking-tight">
-                    {activeConcept.title || activeConcept.name}
+                    {activeConcept.name || activeConcept.title}
                   </h1>
+
+                  {activeConcept.interviewTip && (
+                    <div className="mt-3.5 p-3.5 sm:p-4 rounded-xl bg-blue-950/40 border border-blue-500/30 flex items-start gap-2.5">
+                      <Sparkles
+                        size={17}
+                        className="text-cyan-400 shrink-0 mt-0.5"
+                      />
+                      <div>
+                        <span className="text-[11px] font-mono uppercase tracking-wider text-cyan-300 font-bold block mb-0.5">
+                          Concept Interview Tip
+                        </span>
+                        <p className="text-xs sm:text-sm text-cyan-100 font-medium leading-relaxed">
+                          {activeConcept.interviewTip}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Sub-tabs: Theory vs Code */}
@@ -479,14 +692,13 @@ export default function TopicLearningPage() {
                     }`}
                   >
                     <Code2 size={14} />
-                    <span>Code</span>
+                    <span>Code &amp; Walkthrough</span>
                   </button>
                 </div>
 
                 {/* CONCEPT SUB-TAB 1: THEORY */}
                 {subTab === "theory" && (
                   <div className="space-y-6 animate-fadeIn">
-                    {/* Definition & Real World Example */}
                     <section className="p-4 sm:p-6 rounded-2xl bg-[#0d1227] border border-blue-500/20 shadow-xl space-y-5">
                       <div className="flex items-center justify-between border-b border-white/5 pb-3">
                         <div className="flex items-center gap-2">
@@ -552,7 +764,17 @@ export default function TopicLearningPage() {
                         )}
                       </div>
 
-                      {/* Java Notes (Unordered List) */}
+                      {activeConcept.howItWorksDetailed && (
+                        <div className="p-4 rounded-xl bg-[#151a30]/60 border border-white/5 space-y-1.5">
+                          <span className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
+                            <Info size={14} /> How It Works Under The Hood
+                          </span>
+                          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                            {activeConcept.howItWorksDetailed}
+                          </p>
+                        </div>
+                      )}
+
                       {activeConcept.javaNotes &&
                         activeConcept.javaNotes.length > 0 && (
                           <div className="p-4 sm:p-5 rounded-xl bg-[#080d22]/90 border border-white/10 space-y-3">
@@ -582,7 +804,6 @@ export default function TopicLearningPage() {
                         )}
                     </section>
 
-                    {/* Why This Concept Exists in Software Architecture */}
                     {activeConcept.whyItExists && (
                       <section className="p-4 sm:p-6 rounded-2xl bg-[#0d1227] border border-blue-500/20 shadow-xl space-y-5 sm:space-y-6">
                         <div className="flex items-center justify-between border-b border-white/5 pb-4">
@@ -668,10 +889,24 @@ export default function TopicLearningPage() {
                   </div>
                 )}
 
-                {/* CONCEPT SUB-TAB 2: CODE */}
+                {/* CONCEPT SUB-TAB 2: CODE & WALKTHROUGH */}
                 {subTab === "code" && (
                   <div className="space-y-6 animate-fadeIn">
-                    {/* IDE Code Editor (Horizontal scrollable) */}
+                    {activeConcept.basicExample?.beginnerNote && (
+                      <div className="p-3.5 sm:p-4 rounded-xl bg-cyan-950/40 border border-cyan-500/30 flex items-start gap-2.5">
+                        <Lightbulb
+                          size={16}
+                          className="text-cyan-400 shrink-0 mt-0.5"
+                        />
+                        <p className="text-xs sm:text-sm text-cyan-200 leading-relaxed font-medium">
+                          <span className="font-bold text-white uppercase font-mono mr-1.5">
+                            Beginner Note:
+                          </span>
+                          {activeConcept.basicExample.beginnerNote}
+                        </p>
+                      </div>
+                    )}
+
                     {conceptCode && (
                       <div className="space-y-3">
                         <div className="rounded-2xl border border-white/10 bg-[#080d22] overflow-hidden shadow-2xl">
@@ -684,7 +919,7 @@ export default function TopicLearningPage() {
                               </div>
                               <span className="text-xs font-mono text-slate-400 ml-1.5 truncate">
                                 {activeConcept.filename ||
-                                  `${(activeConcept.title || topicId || "Concept").replace(/\s+/g, "")}.java`}
+                                  `${(activeConcept.name || activeConcept.title || topicId || "Concept").replace(/\s+/g, "")}.java`}
                               </span>
                             </div>
 
@@ -705,7 +940,6 @@ export default function TopicLearningPage() {
                             </button>
                           </div>
 
-                          {/* Code pre container with horizontal scroll */}
                           <div className="overflow-x-auto p-4 sm:p-5 w-full">
                             <pre className="font-mono text-xs sm:text-[13px] text-cyan-100/90 leading-relaxed whitespace-pre min-w-max selection:bg-blue-500/30">
                               <code>{conceptCode}</code>
@@ -713,7 +947,6 @@ export default function TopicLearningPage() {
                           </div>
                         </div>
 
-                        {/* Concept Standard Output stdout */}
                         {conceptOutput && (
                           <div className="p-3 sm:p-4 rounded-xl bg-[#080d22] border border-white/10 font-mono text-xs space-y-1 overflow-x-auto">
                             <span className="text-slate-500 text-[10px] uppercase font-bold tracking-wider block">
@@ -727,108 +960,186 @@ export default function TopicLearningPage() {
                       </div>
                     )}
 
-                    {/* Line-by-Line Code Walkthrough */}
-                    {conceptExplanations && conceptExplanations.length > 0 && (
-                      <section className="p-4 sm:p-6 rounded-2xl bg-[#0d1227] border border-blue-500/20 shadow-xl space-y-4">
-                        <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                          <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-lg bg-blue-500/10 text-cyan-400">
-                              <Terminal size={16} />
-                            </div>
-                            <div>
-                              <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider font-mono text-cyan-300">
-                                Code Walkthrough &amp; Breakdown
-                              </h3>
-                              <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">
-                                Granular review of statements and runtime semantics.
-                              </p>
-                            </div>
-                          </div>
-                          <span className="text-[10px] sm:text-[11px] font-mono px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-300 border border-blue-500/20 shrink-0">
-                            {conceptExplanations.length} Directives
-                          </span>
-                        </div>
+                    {conceptWalkthrough &&
+                      renderWalkthroughSection(conceptWalkthrough)}
 
-                        <div className="space-y-3.5 pt-1">
-                          {conceptExplanations.map((item, index) => (
-                            <div
-                              key={index}
-                              className="p-3.5 sm:p-5 rounded-xl bg-[#151a30]/80 border border-white/5 hover:border-cyan-500/30 transition-all space-y-3 group"
-                            >
-                              {/* 1. Header: Line Number & Scope Metadata */}
-                              <div className="flex items-center justify-between flex-wrap gap-2 text-[10px] sm:text-[11px] font-mono">
-                                <div className="flex items-center gap-1.5 sm:gap-2">
-                                  <span className="px-2 py-0.5 rounded bg-[#080d22] text-cyan-300 font-semibold border border-cyan-800/40">
-                                    LINE #{String(item.line || index + 1).padStart(2, "0")}
-                                  </span>
-                                  {(item.category || item.directive) && (
-                                    <span className="px-2 py-0.5 rounded bg-white/5 text-slate-300 border border-white/10">
-                                      {item.category || item.directive}
-                                    </span>
-                                  )}
-                                </div>
-
-                                <span className="text-slate-500 flex items-center gap-1.5">
-                                  <span>{item.scope || "Statement Scope"}</span>
-                                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/80 group-hover:animate-ping" />
-                                </span>
+                    {!conceptWalkthrough &&
+                      legacyConceptExplanations &&
+                      legacyConceptExplanations.length > 0 && (
+                        <section className="p-4 sm:p-6 rounded-2xl bg-[#0d1227] border border-blue-500/20 shadow-xl space-y-4">
+                          <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                            <div className="flex items-center gap-2">
+                              <div className="p-1.5 rounded-lg bg-blue-500/10 text-cyan-400">
+                                <Terminal size={16} />
                               </div>
-
-                              {/* 2. Full-Width Code Container (Horizontal scrollable on narrow screens) */}
-                              {item.code && (
-                                <div className="rounded-lg bg-[#080d22] border border-cyan-500/20 p-3 sm:p-3.5 overflow-x-auto w-full">
-                                  <code className="font-mono text-xs sm:text-[13px] text-cyan-200 leading-relaxed whitespace-pre min-w-max block selection:bg-cyan-500/20">
-                                    {item.code}
-                                  </code>
-                                </div>
-                              )}
-
-                              {/* 3. Stacked Explanation with Accent Border */}
-                              <div className="flex items-start gap-2 pt-0.5 pl-1 border-l-2 border-cyan-500/40">
-                                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-normal pl-2">
-                                  {item.explanation || item.description || item.text}
+                              <div>
+                                <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider font-mono text-cyan-300">
+                                  Code Walkthrough &amp; Breakdown
+                                </h3>
+                                <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">
+                                  Granular review of statements and runtime
+                                  semantics.
                                 </p>
                               </div>
                             </div>
-                          ))}
-                        </div>
-                      </section>
-                    )}
+                            <span className="text-[10px] sm:text-[11px] font-mono px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-300 border border-blue-500/20 shrink-0">
+                              {legacyConceptExplanations.length} Directives
+                            </span>
+                          </div>
+
+                          <div className="space-y-3.5 pt-1">
+                            {legacyConceptExplanations.map((item, index) => (
+                              <div
+                                key={index}
+                                className="p-3.5 sm:p-5 rounded-xl bg-[#151a30]/80 border border-white/5 hover:border-cyan-500/30 transition-all space-y-3 group"
+                              >
+                                <div className="flex items-center justify-between flex-wrap gap-2 text-[10px] sm:text-[11px] font-mono">
+                                  <div className="flex items-center gap-1.5 sm:gap-2">
+                                    <span className="px-2 py-0.5 rounded bg-[#080d22] text-cyan-300 font-semibold border border-cyan-800/40">
+                                      LINE #
+                                      {String(item.line || index + 1).padStart(
+                                        2,
+                                        "0"
+                                      )}
+                                    </span>
+                                    {(item.category || item.directive) && (
+                                      <span className="px-2 py-0.5 rounded bg-white/5 text-slate-300 border border-white/10">
+                                        {item.category || item.directive}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <span className="text-slate-500 flex items-center gap-1.5">
+                                    <span>
+                                      {item.scope || "Statement Scope"}
+                                    </span>
+                                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/80 group-hover:animate-ping" />
+                                  </span>
+                                </div>
+
+                                {item.code && (
+                                  <div className="rounded-lg bg-[#080d22] border border-cyan-500/20 p-3 sm:p-3.5 overflow-x-auto w-full">
+                                    <code className="font-mono text-xs sm:text-[13px] text-cyan-200 leading-relaxed whitespace-pre min-w-max block selection:bg-cyan-500/20">
+                                      {item.code}
+                                    </code>
+                                  </div>
+                                )}
+
+                                <div className="flex items-start gap-2 pt-0.5 pl-1 border-l-2 border-cyan-500/40">
+                                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-normal pl-2">
+                                    {item.explanation ||
+                                      item.description ||
+                                      item.text}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </section>
+                      )}
                   </div>
                 )}
               </div>
             )}
 
             {/* ======================================================== */}
-            {/* VIEW 2: INTERVIEW DRILLS (CONCEPTUAL, TRICKY, SCENARIO)  */}
+            {/* VIEW 2: INTERVIEWS                                       */}
             {/* ======================================================== */}
             {activeTab === "interviews" && activeQuestion && (
               <>
-                {/* Header & Badges */}
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap mb-2.5">
-                    <span className="text-[10px] sm:text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-blue-500/15 text-cyan-300 border border-blue-500/30">
-                      {activeQuestion.category ||
-                        activeInterviewCategory.toUpperCase()}{" "}
-                      • {activeQuestion.difficulty || "Beginner"} Level
-                    </span>
-                    <span className="text-[10px] sm:text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-white/5 text-slate-400 border border-white/10">
-                      Java 17+ LTS
-                    </span>
-                    <span className="text-[10px] sm:text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
-                      Question{" "}
-                      {String(selectedQuestionIndex + 1).padStart(2, "0")} of{" "}
-                      {currentQuestionsList.length || 1}
-                    </span>
+                {/* Header with questionTopRef for direct scrolling */}
+                <div ref={questionTopRef} className="scroll-mt-20">
+                  <div className="flex items-center justify-between flex-wrap gap-2.5 mb-2.5 pb-2 border-b border-white/5">
+                    {/* Left Badges */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] sm:text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-blue-500/15 text-cyan-300 border border-blue-500/30 font-semibold uppercase">
+                        {activeQuestion.category ||
+                          activeInterviewCategory.toUpperCase()}{" "}
+                        • {activeQuestion.difficulty || "Beginner"} Level
+                      </span>
+                      <span className="text-[10px] sm:text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-white/5 text-slate-400 border border-white/10">
+                        Java 17+ LTS
+                      </span>
+                      {activeQuestion.predictOutput && (
+                        <span className="text-[10px] sm:text-[11px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                          Predict Output
+                        </span>
+                      )}
+                      <span className="text-[10px] sm:text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                        Question{" "}
+                        {String(selectedQuestionIndex + 1).padStart(2, "0")} of{" "}
+                        {currentQuestionsList.length || 1}
+                      </span>
+                    </div>
+
+                    {/* TOP PREV & NEXT QUICK BUTTONS */}
+                    <div className="flex items-center gap-1.5 shrink-0 bg-[#151a30] p-1 rounded-xl border border-white/10">
+                      <button
+                        disabled={selectedQuestionIndex === 0}
+                        onClick={() =>
+                          handleQuestionChange(selectedQuestionIndex - 1)
+                        }
+                        className={`h-7 px-2.5 inline-flex items-center gap-1 rounded-lg text-xs font-semibold transition leading-none ${
+                          selectedQuestionIndex === 0
+                            ? "opacity-30 cursor-not-allowed text-slate-500"
+                            : "text-slate-300 hover:text-white hover:bg-white/10"
+                        }`}
+                        title="Previous Question"
+                      >
+                        <ChevronLeft size={14} />
+                        <span className="hidden sm:inline">Prev</span>
+                      </button>
+
+                      <span className="text-[11px] font-mono text-slate-500 px-1">
+                        {selectedQuestionIndex + 1}/
+                        {currentQuestionsList.length}
+                      </span>
+
+                      <button
+                        disabled={
+                          selectedQuestionIndex >=
+                          currentQuestionsList.length - 1
+                        }
+                        onClick={() =>
+                          handleQuestionChange(selectedQuestionIndex + 1)
+                        }
+                        className={`h-7 px-2.5 inline-flex items-center gap-1 rounded-lg text-xs font-semibold transition leading-none ${
+                          selectedQuestionIndex >=
+                          currentQuestionsList.length - 1
+                            ? "opacity-30 cursor-not-allowed text-slate-500"
+                            : "bg-blue-600 hover:bg-blue-500 text-white shadow-sm"
+                        }`}
+                        title="Next Question"
+                      >
+                        <span className="hidden sm:inline">Next</span>
+                        <ChevronRight size={14} />
+                      </button>
+                    </div>
                   </div>
 
+                  {/* Question Title */}
                   <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white tracking-tight leading-tight">
                     {activeQuestion.question}
                   </h1>
 
+                  {/* Question Tags */}
+                  {activeQuestion.tags && activeQuestion.tags.length > 0 && (
+                    <div className="flex items-center gap-1.5 flex-wrap mt-2.5">
+                      <Tag size={13} className="text-slate-500 shrink-0" />
+                      {activeQuestion.tags.map((tag, tIdx) => (
+                        <span
+                          key={tIdx}
+                          className="text-[11px] font-mono px-2 py-0.5 rounded bg-white/5 text-slate-300 border border-white/10"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Interviewer Pro-Tip */}
                   {activeQuestion.interviewerTip && (
-                    <div className="mt-4 p-3.5 sm:p-4 rounded-xl bg-blue-950/40 border border-blue-500/30 flex items-start gap-2.5 sm:gap-3">
+                    <div className="mt-3.5 p-3.5 sm:p-4 rounded-xl bg-blue-950/40 border border-blue-500/30 flex items-start gap-2.5 sm:gap-3">
                       <Sparkles
                         size={17}
                         className="text-cyan-400 shrink-0 mt-0.5"
@@ -867,7 +1178,7 @@ export default function TopicLearningPage() {
                     }`}
                   >
                     <Code2 size={14} />
-                    <span>Code &amp; Execution</span>
+                    <span>Code &amp; Walkthrough</span>
                   </button>
                 </div>
 
@@ -943,7 +1254,7 @@ export default function TopicLearningPage() {
                       </div>
                     )}
 
-                    {/* Follow Up Questions */}
+                    {/* Follow Up Questions in Theory Tab */}
                     {activeQuestion.followUpQuestions &&
                       activeQuestion.followUpQuestions.length > 0 && (
                         <div className="space-y-4 pt-4 border-t border-white/5">
@@ -961,20 +1272,54 @@ export default function TopicLearningPage() {
                                 key={idx}
                                 className="p-4 sm:p-5 rounded-2xl bg-[#0d1227] border border-blue-500/20 space-y-3"
                               >
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs font-mono text-cyan-400 font-semibold">
-                                    Follow-Up #{idx + 1}
-                                  </span>
-                                  <span className="text-[10px] sm:text-[11px] font-mono px-2 py-0.5 rounded bg-white/5 text-slate-400">
-                                    High Frequency
-                                  </span>
+                                <div className="flex items-center justify-between flex-wrap gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-mono text-cyan-400 font-semibold">
+                                      Follow-Up #{idx + 1}
+                                    </span>
+                                    {followUp.difficulty && (
+                                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-cyan-300 border border-blue-500/20">
+                                        {followUp.difficulty}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {followUp.tags && followUp.tags.length > 0 && (
+                                    <div className="flex items-center gap-1">
+                                      {followUp.tags.map((tag, tgIdx) => (
+                                        <span
+                                          key={tgIdx}
+                                          className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-slate-400"
+                                        >
+                                          #{tag}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
                                 </div>
+
                                 <h4 className="text-sm sm:text-base font-bold text-white">
                                   {followUp.question}
                                 </h4>
+
                                 <p className="text-xs sm:text-sm text-slate-300 leading-relaxed bg-[#151a30]/60 p-3 sm:p-4 rounded-xl border border-white/5">
                                   {followUp.answer}
                                 </p>
+
+                                {followUp.interviewTip && (
+                                  <div className="p-3 rounded-lg bg-blue-950/30 border border-blue-500/20 flex items-start gap-2">
+                                    <Sparkles
+                                      size={14}
+                                      className="text-cyan-400 shrink-0 mt-0.5"
+                                    />
+                                    <p className="text-xs text-cyan-200">
+                                      <span className="font-bold text-cyan-300 font-mono mr-1">
+                                        Tip:
+                                      </span>
+                                      {followUp.interviewTip}
+                                    </p>
+                                  </div>
+                                )}
                               </div>
                             ),
                           )}
@@ -983,19 +1328,19 @@ export default function TopicLearningPage() {
                   </div>
                 )}
 
-                {/* INTERVIEW SUB-TAB 2: CODE */}
+                {/* INTERVIEW SUB-TAB 2: CODE & WALKTHROUGH */}
                 {subTab === "code" && (
                   <div className="space-y-6 animate-fadeIn">
-                    {/* Main Question Code */}
-                    {activeQuestion.interviewAnswer?.codeExample && (
+                    {/* Main Question Code Block */}
+                    {activeQuestion.interviewAnswer?.codeExample?.code && (
                       <div className="space-y-3">
                         <div className="rounded-2xl border border-white/10 bg-[#080d22] overflow-hidden shadow-2xl">
                           <div className="px-3 sm:px-4 py-2 sm:py-2.5 bg-[#151a30] border-b border-white/5 flex items-center justify-between">
                             <div className="flex items-center gap-2 min-w-0">
                               <div className="flex gap-1.5 shrink-0">
                                 <span className="w-2.5 h-2.5 rounded-full bg-red-500/80 inline-block" />
-                                <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/80 inline-block" />
-                                <span className="w-2.5 h-2.5 rounded-full bg-green-500/80 inline-block" />
+                                <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-yellow-500/80 inline-block" />
+                                <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-green-500/80 inline-block" />
                               </div>
                               <span className="text-xs font-mono text-slate-400 ml-1.5 truncate">
                                 SolutionPattern.java
@@ -1049,149 +1394,113 @@ export default function TopicLearningPage() {
                       </div>
                     )}
 
-                    {/* Follow-up Questions Code & Stacked Line-by-Line Breakdown */}
-                    {activeQuestion.followUpQuestions?.map((followUp, fIdx) => (
-                      <div
-                        key={fIdx}
-                        className="p-4 sm:p-6 rounded-2xl bg-[#0d1227] border border-blue-500/20 shadow-xl space-y-5"
-                      >
-                        {/* Header */}
-                        <div className="border-b border-white/5 pb-3 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="p-1 rounded-md bg-blue-500/10 text-cyan-400">
-                              <Terminal size={15} />
-                            </div>
-                            <h4 className="text-xs sm:text-sm font-bold text-white font-mono">
-                              Follow-Up #{fIdx + 1}: {followUp.question}
-                            </h4>
-                          </div>
-                          <span className="text-[10px] sm:text-[11px] font-mono px-2 py-0.5 rounded-full bg-blue-500/10 text-cyan-300 border border-blue-500/20 shrink-0">
-                            Execution
-                          </span>
-                        </div>
+                    {/* Main Question Walkthrough */}
+                    {activeQuestion.interviewAnswer?.codeExample?.walkthrough &&
+                      renderWalkthroughSection(
+                        activeQuestion.interviewAnswer.codeExample.walkthrough
+                      )}
 
-                        {/* Follow-up Code Editor */}
-                        {followUp.codeExample && (
-                          <div className="rounded-xl border border-white/10 bg-[#080d22] overflow-hidden shadow-lg">
-                            <div className="px-3 sm:px-4 py-2 bg-[#151a30] border-b border-white/5 flex items-center justify-between">
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <span className="w-2 h-2 rounded-full bg-red-500/80 inline-block" />
-                                <span className="w-2 h-2 rounded-full bg-yellow-500/80 inline-block" />
-                                <span className="w-2 h-2 rounded-full bg-green-500/80 inline-block" />
-                                <span className="text-xs font-mono text-slate-400 ml-1.5 truncate">
-                                  FollowUp_{fIdx + 1}.java
-                                </span>
+                    {/* Follow-up Questions Code & Walkthrough */}
+                    {activeQuestion.followUpQuestions?.map((followUp, fIdx) => {
+                      const fuCode =
+                        followUp.code || followUp.codeExample?.code;
+                      const fuOutput =
+                        followUp.output || followUp.codeExample?.output;
+                      const fuWalkthrough =
+                        followUp.walkthrough ||
+                        followUp.codeExample?.walkthrough;
+
+                      return (
+                        <div
+                          key={fIdx}
+                          className="p-4 sm:p-6 rounded-2xl bg-[#0d1227] border border-blue-500/20 shadow-xl space-y-5"
+                        >
+                          <div className="border-b border-white/5 pb-3 flex items-center justify-between flex-wrap gap-2">
+                            <div className="flex items-center gap-2">
+                              <div className="p-1 rounded-md bg-blue-500/10 text-cyan-400">
+                                <Terminal size={15} />
+                              </div>
+                              <h4 className="text-xs sm:text-sm font-bold text-white font-mono">
+                                Follow-Up #{fIdx + 1}: {followUp.question}
+                              </h4>
+                            </div>
+                            <span className="text-[10px] sm:text-[11px] font-mono px-2 py-0.5 rounded-full bg-blue-500/10 text-cyan-300 border border-blue-500/20 shrink-0">
+                              Execution Drill
+                            </span>
+                          </div>
+
+                          {fuCode && (
+                            <div className="rounded-xl border border-white/10 bg-[#080d22] overflow-hidden shadow-lg">
+                              <div className="px-3 sm:px-4 py-2 bg-[#151a30] border-b border-white/5 flex items-center justify-between">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span className="w-2 h-2 rounded-full bg-red-500/80 inline-block" />
+                                  <span className="w-2 h-2 rounded-full bg-yellow-500/80 inline-block" />
+                                  <span className="w-2 h-2 rounded-full bg-green-500/80 inline-block" />
+                                  <span className="text-xs font-mono text-slate-400 ml-1.5 truncate">
+                                    FollowUp_{fIdx + 1}.java
+                                  </span>
+                                </div>
+
+                                <button
+                                  onClick={() =>
+                                    copyCode(fuCode, `fu-code-${fIdx}`)
+                                  }
+                                  className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 transition shrink-0"
+                                >
+                                  {copiedKey === `fu-code-${fIdx}` ? (
+                                    <Check
+                                      size={12}
+                                      className="text-emerald-400"
+                                    />
+                                  ) : (
+                                    <Copy size={12} />
+                                  )}
+                                  <span>
+                                    {copiedKey === `fu-code-${fIdx}`
+                                      ? "Copied"
+                                      : "Copy"}
+                                  </span>
+                                </button>
                               </div>
 
-                              <button
-                                onClick={() =>
-                                  copyCode(
-                                    followUp.codeExample.code,
-                                    `fu-code-${fIdx}`
-                                  )
-                                }
-                                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 transition shrink-0"
-                              >
-                                {copiedKey === `fu-code-${fIdx}` ? (
-                                  <Check
-                                    size={12}
-                                    className="text-emerald-400"
-                                  />
-                                ) : (
-                                  <Copy size={12} />
-                                )}
-                                <span>
-                                  {copiedKey === `fu-code-${fIdx}`
-                                    ? "Copied"
-                                    : "Copy"}
-                                </span>
-                              </button>
+                              <div className="overflow-x-auto p-4 w-full">
+                                <pre className="font-mono text-xs text-cyan-100/90 whitespace-pre min-w-max leading-relaxed">
+                                  <code>{fuCode}</code>
+                                </pre>
+                              </div>
                             </div>
+                          )}
 
-                            <div className="overflow-x-auto p-4 w-full">
-                              <pre className="font-mono text-xs text-cyan-100/90 whitespace-pre min-w-max leading-relaxed">
-                                <code>{followUp.codeExample.code}</code>
+                          {fuOutput && (
+                            <div className="p-3 sm:p-4 rounded-xl bg-[#080d22] border border-white/10 font-mono text-xs space-y-1 overflow-x-auto">
+                              <span className="text-slate-500 text-[10px] uppercase font-bold tracking-wider block">
+                                Standard Output (stdout)
+                              </span>
+                              <pre className="text-emerald-400 whitespace-pre min-w-max">
+                                {fuOutput}
                               </pre>
                             </div>
-                          </div>
-                        )}
+                          )}
 
-                        {/* Standard Output (stdout) for Follow-up */}
-                        {followUp?.codeExample?.output && (
-                          <div className="p-3 sm:p-4 rounded-xl bg-[#080d22] border border-white/10 font-mono text-xs space-y-1 overflow-x-auto">
-                            <span className="text-slate-500 text-[10px] uppercase font-bold tracking-wider block">
-                              Standard Output (stdout)
-                            </span>
-                            <pre className="text-emerald-400 whitespace-pre min-w-max">
-                              {followUp?.codeExample?.output}
-                            </pre>
-                          </div>
-                        )}
-
-                        {/* Line-by-Line Deconstruction */}
-                        {followUp.detailedExplanation?.lineByLine && (
-                          <div className="space-y-3 pt-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-[11px] sm:text-xs font-mono font-bold uppercase tracking-wider text-cyan-300">
-                                Line-by-Line Deconstruction
-                              </span>
-                              <span className="text-[10px] sm:text-[11px] font-mono text-slate-400">
-                                {followUp.detailedExplanation.lineByLine.length} Statements
-                              </span>
-                            </div>
-
-                            <div className="space-y-3">
-                              {followUp.detailedExplanation.lineByLine.map((lineItem, lIdx) => (
-                                <div
-                                  key={lIdx}
-                                  className="p-3.5 sm:p-4 rounded-xl bg-[#151a30]/80 border border-white/5 hover:border-cyan-500/30 transition-all space-y-2.5 group"
-                                >
-                                  {/* Line Metadata Bar */}
-                                  <div className="flex items-center justify-between text-[10px] sm:text-[11px] font-mono">
-                                    <span className="px-2 py-0.5 rounded bg-[#080d22] text-cyan-300 font-semibold border border-cyan-800/40">
-                                      LINE #{String(lineItem.line || lIdx + 1).padStart(2, "0")}
-                                    </span>
-                                    <span className="text-slate-500 flex items-center gap-1.5">
-                                      <span>Scope Directive</span>
-                                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/80 group-hover:animate-ping" />
-                                    </span>
-                                  </div>
-
-                                  {/* Full-Width Code Container (Horizontal scrollable) */}
-                                  <div className="rounded-lg bg-[#080d22] border border-cyan-500/20 p-2.5 sm:p-3 overflow-x-auto w-full">
-                                    <code className="font-mono text-xs text-cyan-200 leading-relaxed whitespace-pre min-w-max block">
-                                      {lineItem.code}
-                                    </code>
-                                  </div>
-
-                                  {/* Stacked Explanation with Accent Border */}
-                                  <div className="flex items-start gap-2 pt-0.5 border-l-2 border-cyan-500/40 pl-2 sm:pl-2.5">
-                                    <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-normal">
-                                      {lineItem.explanation}
-                                    </p>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                          {fuWalkthrough &&
+                            renderWalkthroughSection(fuWalkthrough)}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </>
             )}
           </div>
 
-          {/* Sticky Bottom Pagination Bar (Only active during Interview Drills) */}
+          {/* Sticky Bottom Pagination Bar */}
           {activeTab === "interviews" && currentQuestionsList.length > 0 && (
             <footer className="h-16 border-t border-white/10 bg-[#0d1227] px-4 sm:px-8 flex items-center justify-between sticky bottom-0 z-20 shrink-0">
               <button
                 disabled={selectedQuestionIndex === 0}
-                onClick={() => {
-                  setSelectedQuestionIndex((prev) => Math.max(prev - 1, 0));
-                  setSubTab("theory");
-                }}
+                onClick={() =>
+                  handleQuestionChange(selectedQuestionIndex - 1)
+                }
                 className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-semibold transition ${
                   selectedQuestionIndex === 0
                     ? "opacity-40 cursor-not-allowed text-slate-500 bg-white/5"
@@ -1219,16 +1528,15 @@ export default function TopicLearningPage() {
 
               <button
                 disabled={
-                  selectedQuestionIndex >= currentQuestionsList.length - 1
+                  selectedQuestionIndex >=
+                  currentQuestionsList.length - 1
                 }
-                onClick={() => {
-                  setSelectedQuestionIndex((prev) =>
-                    Math.min(prev + 1, currentQuestionsList.length - 1)
-                  );
-                  setSubTab("theory");
-                }}
+                onClick={() =>
+                  handleQuestionChange(selectedQuestionIndex + 1)
+                }
                 className={`flex items-center gap-1 sm:gap-2 px-3.5 sm:px-5 py-2 rounded-xl text-xs font-semibold transition ${
-                  selectedQuestionIndex >= currentQuestionsList.length - 1
+                  selectedQuestionIndex >=
+                  currentQuestionsList.length - 1
                     ? "opacity-40 cursor-not-allowed text-slate-500 bg-white/5"
                     : "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30"
                 }`}
@@ -1241,6 +1549,21 @@ export default function TopicLearningPage() {
           )}
         </main>
       </div>
+
+      {/* Floating Back to Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-20 right-5 sm:bottom-22 sm:right-8 z-40 h-11 w-11 rounded-full bg-blue-600 hover:bg-blue-500 text-white shadow-xl shadow-blue-900/60 border border-blue-400/40 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 group animate-fadeIn"
+          aria-label="Scroll to top"
+          title="Back to Top"
+        >
+          <ArrowUp
+            size={18}
+            className="group-hover:-translate-y-0.5 transition-transform"
+          />
+        </button>
+      )}
     </div>
   );
 }
