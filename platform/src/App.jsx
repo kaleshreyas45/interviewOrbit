@@ -13,7 +13,7 @@ import TopicLearningPage from "./pages/TopicLearningPage";
 
 export default function App() {
   return (
-    <Router basename="/interviewOrbit">
+    <Router basename="/interviewOrbit/platform">
       <div className="min-h-screen bg-[#080d22] text-slate-100 flex flex-col font-sans selection:bg-blue-500/30">
         <Navbar />
         <main className="flex-grow">
