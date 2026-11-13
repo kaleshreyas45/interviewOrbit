@@ -1,0 +1,43 @@
+{
+  "java": {
+    "title": "Java",
+    "description": "Core Java concepts and interview preparation",
+    "topics": [
+      {
+        "id": "oops",
+        "title": "Object-Oriented Programming",
+        "file": "java/oops.json"
+      },
+      {
+        "id": "streams",
+        "title": "Java Streams",
+        "file": "java/streams.json"
+      },
+      {
+        "id": "collections",
+        "title": "Collections Framework",
+        "file": "java/collections.json"
+      },
+      {
+        "id": "multithreading",
+        "title": "Multithreading",
+        "file": "java/multithreading.json"
+      }
+    ]
+  },
+  "react": {
+    "title": "React JS",
+    "description": "React concepts and interview preparation",
+    "topics": []
+  },
+  "spring-boot": {
+    "title": "Spring Boot",
+    "description": "Spring Boot concepts and interview preparation",
+    "topics": []
+  },
+  "microservices": {
+    "title": "Microservices",
+    "description": "Microservices concepts and interview preparation",
+    "topics": []
+  }
+}
